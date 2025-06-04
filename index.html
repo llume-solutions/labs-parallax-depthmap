@@ -65,7 +65,15 @@
             .panel {
                 border-radius: 0.5rem;
                 background-color: rgb(59, 59, 70);
-                padding: 1rem;
+                padding: 0.5rem
+            }
+
+            h1 {
+                color: rgb(255, 255, 255);
+                font-size: 0.75rem;
+                font-family: monospace;
+                font-weight: 500;
+                margin-bottom: 0.25rem;
             }
 
             .graph-panel {
@@ -74,7 +82,7 @@
 
                 .graph-panel-child {
                     position: absolute;
-                    inset: .5rem;
+                    inset: 0.1rem;
                 }
             }
 
@@ -92,17 +100,20 @@
     <div class="text-overlay" id="text-overlay">Big screen</div>
     <div class="debug-panels">
         <div id="tweakpane-container"></div>
-        <div class="panel graph-panel">
-            <div class="dot-grid graph-panel-child"></div>
-            <div class="graph-panel-child">
-                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <line class="animated-line" x1="0" y1="100" x2="100" y2="0" stroke="white" stroke-width="0.5" />
-                </svg>
-            </div>
-            <div class="graph-panel-child">
-                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <line x1="0" y1="100" x2="100" y2="0" stroke="white" stroke-width="0.1" />
-                </svg>
+        <div class="panel">
+            <h1>scroll position</h1>
+            <div class="graph-panel">
+                <div class="dot-grid graph-panel-child"></div>
+                <div class="graph-panel-child">
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <line class="animated-line" x1="0" y1="100" x2="100" y2="0" stroke="white" stroke-width="0.5" />
+                    </svg>
+                </div>
+                <div class="graph-panel-child">
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <line x1="0" y1="100" x2="100" y2="0" stroke="white" stroke-width="0.1" />
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
