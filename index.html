@@ -21,7 +21,7 @@
         }
 
         body {
-            background: #000;
+            background: #fff;
             overflow-x: hidden;
             font-family: 'Arial', sans-serif;
             height: 599vh;
@@ -54,49 +54,114 @@
             text-align: center;
         }
 
-        .tp-dfwv {
-            position: fixed !important;
-            /* top: 20px;
-            left: 20px; */
-            z-index: 10;
+        .debug-panels {
+            position: fixed;
+            right: 0;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+
+            .panel {
+                border-radius: 0.5rem;
+                background-color: rgb(59, 59, 70);
+                padding: 1rem;
+            }
+
+            .graph-panel {
+                height: 130px;
+                position: relative;
+
+                .graph-panel-child {
+                    position: absolute;
+                    inset: .5rem;
+                }
+            }
+
+            .dot-grid {
+                opacity: .5;
+                background-image: radial-gradient(#ffffff .5px, transparent .5px);
+                background-size: calc(0.5rem - 1px) calc(0.5rem - 1px);
+            }
         }
     </style>
 </head>
 
 <body>
     <div id="canvas-container"></div>
-
     <div class="text-overlay" id="text-overlay">Big screen</div>
+    <div class="debug-panels">
+        <div id="tweakpane-container"></div>
+        <div class="panel graph-panel">
+            <div class="dot-grid graph-panel-child"></div>
+            <div class="graph-panel-child">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <line class="animated-line" x1="0" y1="100" x2="100" y2="0" stroke="white" stroke-width="0.5" />
+                </svg>
+            </div>
+            <div class="graph-panel-child">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <line x1="0" y1="100" x2="100" y2="0" stroke="white" stroke-width="0.1" />
+                </svg>
+            </div>
+        </div>
+    </div>
+    <div class="square car motion-path-car" style="transform: translateX(189px) translateY(4px);"></div>
 
     <script type="module">
         import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
+        import { animate, svg } from 'https://cdn.jsdelivr.net/npm/animejs/+esm';
 
-        // Scene setup
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x000000);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        // Animate the transforms properties of .car the motion path values
+        const carAnimation = animate('.car', {
+            ease: 'linear',
+            duration: 5000,
+            loop: true,
+            ...svg.createMotionPath('.animated-line')
+        });
 
-        camera.position.z = 1;
+        const lineAnim = animate(svg.createDrawable('.animated-line'), {
+            draw: '0 1',
+            ease: 'linear',
+            duration: 5000,
+            autoplay: false
+        });
 
-        // Mouse position
-        const mouse = { x: 0, y: 0 };
-        let scrollProgress = 0;
-        let currentImageIndex = 0;
+        window.addEventListener('scroll', () => {
+            const progress = window.scrollY / window.innerHeight;
+            const duration = 5000; // should match animation duration
 
-        // Text content
-        const texts = [
-            'Big screen',
-            'Mind-melting',
-            'Adrenaline-inducing',
-            'Reality-bending',
-            'AUTOMOTIVE VFX'
-        ];
+            carAnimation.seek(progress * duration);
+            lineAnim.seek(progress * duration);
+        });
 
-        // Shader materials
-        const vertexShader = `
+        function setupThree() {
+            // Scene setup
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            camera.position.z = 1;
+
+            // Mouse position
+            const mouse = { x: 0, y: 0 };
+            let scrollProgress = 0;
+            let currentImageIndex = 0;
+
+            // Text content
+            const texts = [
+                'Big screen',
+                'Mind-melting',
+                'Adrenaline-inducing',
+                'Reality-bending',
+                'AUTOMOTIVE VFX'
+            ];
+
+            // Shader materials
+            const vertexShader = `
             uniform vec2 uMouse;
             uniform float uZDisplacement;
             uniform sampler2D uDepthMap;
@@ -125,7 +190,7 @@
             }
         `;
 
-        const fragmentShader = `
+            const fragmentShader = `
             uniform sampler2D uTexture;
             uniform float uAlpha;
             varying vec2 vUv;
@@ -141,131 +206,133 @@
             }
         `;
 
-        // Create materials for each image
-        const materials = [];
-        const textures = [];
-        const depthTextures = [];
+            // Create materials for each image
+            const materials = [];
+            const textures = [];
+            const depthTextures = [];
 
-        // Initialize with placeholder materials
-        for (let i = 0; i < 5; i++) {
-            const material = new THREE.ShaderMaterial({
-                vertexShader: vertexShader,
-                fragmentShader: fragmentShader,
-                uniforms: {
-                    uTexture: { value: null },
-                    uDepthMap: { value: null },
-                    uMouse: { value: new THREE.Vector2(0, 0) },
-                    uZDisplacement: { value: 0 },
-                    uAlpha: { value: i === 0 ? 1 : 0 }
-                },
-                transparent: true,
-            });
-            materials.push(material);
-        }
+            // Initialize with placeholder materials
+            for (let i = 0; i < 5; i++) {
+                const material = new THREE.ShaderMaterial({
+                    vertexShader: vertexShader,
+                    fragmentShader: fragmentShader,
+                    uniforms: {
+                        uTexture: { value: null },
+                        uDepthMap: { value: null },
+                        uMouse: { value: new THREE.Vector2(0, 0) },
+                        uZDisplacement: { value: 0 },
+                        uAlpha: { value: i === 0 ? 1 : 0 }
+                    },
+                    transparent: true,
+                });
+                materials.push(material);
+            }
 
-        // Create geometry (high resolution for smooth displacement)
-        const quadSize = 2.4;
-        const detail = 1000;
-        const geometry = new THREE.PlaneGeometry(1.6 * quadSize, 0.9 * quadSize, detail, detail);
+            // Create geometry (high resolution for smooth displacement)
+            const quadSize = 2.4;
+            const detail = 1000;
+            const geometry = new THREE.PlaneGeometry(1.6 * quadSize, 0.9 * quadSize, detail, detail);
 
-        // Create meshes
-        const meshes = [];
-        for (let i = 0; i < 5; i++) {
-            const mesh = new THREE.Mesh(geometry, materials[i]);
-            scene.add(mesh);
-            meshes.push(mesh);
-        }
+            // Create meshes
+            const meshes = [];
+            for (let i = 0; i < 5; i++) {
+                const mesh = new THREE.Mesh(geometry, materials[i]);
+                scene.add(mesh);
+                meshes.push(mesh);
+            }
 
-        function loadImagePair(imageFile, depthFile, index) {
-            const loader = new THREE.TextureLoader();
+            function loadImagePair(imageFile, depthFile, index) {
+                const loader = new THREE.TextureLoader();
 
-            // Load main image
-            loader.load(imageFile, (texture) => {
-                texture.wrapS = THREE.ClampToEdgeWrapping;
-                texture.wrapT = THREE.ClampToEdgeWrapping;
-                materials[index].uniforms.uTexture.value = texture;
+                // Load main image
+                loader.load(imageFile, (texture) => {
+                    texture.wrapS = THREE.ClampToEdgeWrapping;
+                    texture.wrapT = THREE.ClampToEdgeWrapping;
+                    materials[index].uniforms.uTexture.value = texture;
 
-                // Load depth map
-                loader.load(depthFile, (depthTexture) => {
-                    depthTexture.wrapS = THREE.ClampToEdgeWrapping;
-                    depthTexture.wrapT = THREE.ClampToEdgeWrapping;
-                    materials[index].uniforms.uDepthMap.value = depthTexture;
+                    // Load depth map
+                    loader.load(depthFile, (depthTexture) => {
+                        depthTexture.wrapS = THREE.ClampToEdgeWrapping;
+                        depthTexture.wrapT = THREE.ClampToEdgeWrapping;
+                        materials[index].uniforms.uDepthMap.value = depthTexture;
+                    });
+                });
+            }
+
+            // Mouse tracking
+            document.addEventListener('mousemove', (event) => {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                // Update all materials
+                materials.forEach(material => {
+                    material.uniforms.uMouse.value.set(mouse.x, mouse.y);
                 });
             });
-        }
 
-        // Mouse tracking
-        document.addEventListener('mousemove', (event) => {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            // Scroll handling
+            window.addEventListener('scroll', () => {
+                const scrollTop = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const documentHeight = document.documentElement.scrollHeight - windowHeight;
 
-            // Update all materials
-            materials.forEach(material => {
-                material.uniforms.uMouse.value.set(mouse.x, mouse.y);
-            });
-        });
+                // Calculate which section we're in (0-4)
+                const totalSections = 5;
+                const sectionHeight = windowHeight;
+                const currentSection = Math.floor(scrollTop / sectionHeight);
+                const sectionProgress = (scrollTop % sectionHeight) / sectionHeight;
 
-        // Scroll handling
-        window.addEventListener('scroll', () => {
-            const scrollTop = window.scrollY;
-            const windowHeight = window.innerHeight;
-            const documentHeight = document.documentElement.scrollHeight - windowHeight;
+                // Update current image index
+                const newImageIndex = Math.min(currentSection, 4);
 
-            // Calculate which section we're in (0-4)
-            const totalSections = 5;
-            const sectionHeight = windowHeight;
-            const currentSection = Math.floor(scrollTop / sectionHeight);
-            const sectionProgress = (scrollTop % sectionHeight) / sectionHeight;
+                // Update text
+                const textOverlay = document.getElementById('text-overlay');
+                textOverlay.textContent = texts[newImageIndex];
 
-            // Update current image index
-            const newImageIndex = Math.min(currentSection, 4);
+                // Text color based on section progress
+                const intensity = Math.min(sectionProgress * 2, 1) * 0.7;
+                const color = `rgba(255, 255, 255, ${0.05 + sectionProgress})`;
+                textOverlay.style.color = color;
 
-            // Update text
-            const textOverlay = document.getElementById('text-overlay');
-            textOverlay.textContent = texts[newImageIndex];
+                // Update Z displacement for current section
+                const zDisplacement = sectionProgress * 4;
+                // Update material uniforms
+                materials.forEach((material, index) => {
+                    if (index === newImageIndex) {
+                        material.uniforms.uAlpha.value = 1;
+                        material.uniforms.uZDisplacement.value = zDisplacement;
+                    } else {
+                        material.uniforms.uAlpha.value = 0;
+                        material.uniforms.uZDisplacement.value = 0;
+                    }
+                });
 
-            // Text color based on section progress
-            const intensity = Math.min(sectionProgress * 2, 1) * 0.7;
-            const color = `rgba(255, 255, 255, ${0.05 + sectionProgress})`;
-            textOverlay.style.color = color;
-
-            // Update Z displacement for current section
-            const zDisplacement = sectionProgress * 4;
-            // Update material uniforms
-            materials.forEach((material, index) => {
-                if (index === newImageIndex) {
-                    material.uniforms.uAlpha.value = 1;
-                    material.uniforms.uZDisplacement.value = zDisplacement;
-                } else {
-                    material.uniforms.uAlpha.value = 0;
-                    material.uniforms.uZDisplacement.value = 0;
-                }
+                currentImageIndex = newImageIndex;
             });
 
-            currentImageIndex = newImageIndex;
-        });
+            // Animation loop
+            function render() {
+                requestAnimationFrame(render);
+                renderer.render(scene, camera);
+            }
 
-        // Animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Start animation
+            render();
+
+            loadImagePair("./images/1-lambo.png", "./images/1-lambo-depth.png", 0);
+            loadImagePair("./images/2-vibe.jpeg", "./images/2-vibe-depth.jpeg", 1);
+            loadImagePair("./images/3-rally.png", "./images/3-rally-depth.png", 2);
+            loadImagePair("./images/4-surreal.jpeg", "./images/4-surreal-depth.jpeg", 3);
+            loadImagePair("./images/5-night.jpeg", "./images/5-night-depth.jpeg", 4);
         }
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // Start animation
-        animate();
-
-        loadImagePair("./images/1-lambo.png", "./images/1-lambo-depth.png", 0);
-        loadImagePair("./images/2-vibe.jpeg", "./images/2-vibe-depth.jpeg", 1);
-        loadImagePair("./images/3-rally.png", "./images/3-rally-depth.png", 2);
-        loadImagePair("./images/4-surreal.jpeg", "./images/4-surreal-depth.jpeg", 3);
-        loadImagePair("./images/5-night.jpeg", "./images/5-night-depth.jpeg", 4);
 
         // Tweakpane
         const PARAMS = {
@@ -274,7 +341,9 @@
             rotate: false
         };
 
-        const pane = new Pane();
+        const pane = new Pane({
+            container: document.querySelector('#tweakpane-container')
+        });
 
         pane.addBinding(PARAMS, 'wireframe').on('change', ({ value }) => {
             materials.forEach(material => {
