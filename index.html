@@ -61,6 +61,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
+            width: 300px;
 
             .panel {
                 border-radius: 0.5rem;
@@ -74,6 +75,10 @@
                 font-family: monospace;
                 font-weight: 500;
                 margin-bottom: 0.25rem;
+            }
+
+            img {
+                width: 100%;
             }
 
             .graph-panel {
@@ -116,20 +121,16 @@
                 </div>
             </div>
         </div>
+        <div class="panel">
+            <h1>Displacement texture</h1>
+            <img id="displacement-img" src="images/1-lambo-depth.png" />
+        </div>
     </div>
-    <div class="square car motion-path-car" style="transform: translateX(189px) translateY(4px);"></div>
 
     <script type="module">
         import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.5/dist/tweakpane.min.js';
         import { animate, svg } from 'https://cdn.jsdelivr.net/npm/animejs/+esm';
-
-        // Animate the transforms properties of .car the motion path values
-        const carAnimation = animate('.car', {
-            ease: 'linear',
-            duration: 5000,
-            loop: true,
-            ...svg.createMotionPath('.animated-line')
-        });
+        import { renderNoiseFrame } from './noisegen.js';
 
         const lineAnim = animate(svg.createDrawable('.animated-line'), {
             draw: '0 1',
@@ -138,14 +139,6 @@
             autoplay: false
         });
 
-        // window.addEventListener('scroll', () => {
-        //     const progress = window.scrollY / window.innerHeight;
-        //     const duration = 5000; // should match animation duration
-
-        //     carAnimation.seek(progress * duration);
-        //     lineAnim.seek(progress * duration);
-        // });
-
         // Scene setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -153,7 +146,6 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setClearColor(0x000000);
         document.getElementById('canvas-container').appendChild(renderer.domElement);
-
         camera.position.z = 1;
 
         // Mouse position
@@ -323,7 +315,6 @@
             // Line animation progress
             const duration = 5000; // should match animation duration
 
-            carAnimation.seek(sectionProgress * duration);
             lineAnim.seek(sectionProgress * duration);
         });
 
@@ -354,7 +345,8 @@
             wireframe: false,
             resolution: 1000,
             cameraZ: 1,
-            rotate: false
+            rotate: false,
+            replaceDisplacement: false,
         };
 
         const pane = new Pane({
@@ -387,6 +379,14 @@
                 mesh.geometry = new THREE.PlaneGeometry(1.6 * quadSize, 0.9 * quadSize, value, value);
             });
         });
+        pane.addBinding(PARAMS, 'replaceDisplacement').on('change', ({ value }) => {
+            const noiseCanvas = document.createElement('canvas');
+            const noiseTexture = new THREE.CanvasTexture(noiseCanvas);
+            noiseTexture.minFilter = THREE.LinearFilter;
+            noiseTexture.wrapS = THREE.ClampToEdgeWrapping;
+            noiseTexture.wrapT = THREE.ClampToEdgeWrapping;
+t        });
+
     </script>
 </body>
 
