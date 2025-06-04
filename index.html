@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<!-- 
+    Created by https://llume.co with the help of claude.ai
+    (code quality would be way more kickass+++++ if handwritten)
+-->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Depth Map Scroll Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow-x: hidden;
+            font-family: 'Arial', sans-serif;
+            height: 599vh;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            aspect-ratio: 16/9;
+        }
+
+        .text-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            z-index: 10;
+            pointer-events: none;
+            color: rgba(255, 255, 255, 0.3);
+            transition: color 0.05s ease;
+            width: 100%;
+            text-align: center;
+        }
+
+        .demo-notice {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            z-index: 100;
+            max-width: 300px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="text-overlay" id="text-overlay">Big screen</div>
+
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        camera.position.z = 1;
+
+        // Mouse position
+        const mouse = { x: 0, y: 0 };
+        let scrollProgress = 0;
+        let currentImageIndex = 0;
+
+        // Text content
+        const texts = [
+            'Big screen',
+            'Mind-melting',
+            'Adrenaline-inducing',
+            'Reality-bending',
+            'AUTOMOTIVE VFX'
+        ];
+
+        // Shader materials
+        const vertexShader = `
+            uniform vec2 uMouse;
+            uniform float uZDisplacement;
+            uniform sampler2D uDepthMap;
+            varying vec2 vUv;
+            varying float vDisplacement;
+
+            void main() {
+                vUv = uv;
+                
+                // Sample depth map
+                vec4 depthColor = texture2D(uDepthMap, uv);
+                float depth = depthColor.r; // Use red channel for depth
+                
+                vec3 pos = position;
+                
+                // X and Y displacement based on mouse and depth
+                pos.x += (uMouse.x * depth * 0.1);
+                pos.y += (uMouse.y * depth * 0.1);
+                
+                // Z displacement based on scroll and depth
+                pos.z += depth * uZDisplacement * 0.2;
+                
+                vDisplacement = depth;
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            uniform sampler2D uTexture;
+            uniform float uAlpha;
+            varying vec2 vUv;
+            varying float vDisplacement;
+
+            void main() {
+                vec4 textureColor = texture2D(uTexture, vUv);
+                
+                // Add some depth-based color variation
+                vec3 color = textureColor.rgb + vDisplacement * 0.1;
+                
+                gl_FragColor = vec4(color, textureColor.a * uAlpha);
+            }
+        `;
+
+        // Create materials for each image
+        const materials = [];
+        const textures = [];
+        const depthTextures = [];
+
+        // Initialize with placeholder materials
+        for (let i = 0; i < 5; i++) {
+            const material = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    uTexture: { value: null },
+                    uDepthMap: { value: null },
+                    uMouse: { value: new THREE.Vector2(0, 0) },
+                    uZDisplacement: { value: 0 },
+                    uAlpha: { value: i === 0 ? 1 : 0 }
+                },
+                transparent: true
+            });
+            materials.push(material);
+        }
+
+        // Create geometry (high resolution for smooth displacement)
+        const quadSize = 2.4;
+        const detail = 1000;
+        const geometry = new THREE.PlaneGeometry(1.6 * quadSize, 0.9 * quadSize, detail, detail);
+
+        // Create meshes
+        const meshes = [];
+        for (let i = 0; i < 5; i++) {
+            const mesh = new THREE.Mesh(geometry, materials[i]);
+            scene.add(mesh);
+            meshes.push(mesh);
+        }
+
+        function loadImagePair(imageFile, depthFile, index) {
+            const loader = new THREE.TextureLoader();
+
+            // Load main image
+            loader.load(imageFile, (texture) => {
+                texture.wrapS = THREE.ClampToEdgeWrapping;
+                texture.wrapT = THREE.ClampToEdgeWrapping;
+                materials[index].uniforms.uTexture.value = texture;
+
+                // Load depth map
+                loader.load(depthFile, (depthTexture) => {
+                    depthTexture.wrapS = THREE.ClampToEdgeWrapping;
+                    depthTexture.wrapT = THREE.ClampToEdgeWrapping;
+                    materials[index].uniforms.uDepthMap.value = depthTexture;
+                });
+            });
+        }
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Update all materials
+            materials.forEach(material => {
+                material.uniforms.uMouse.value.set(mouse.x, mouse.y);
+            });
+        });
+
+        // Scroll handling
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight - windowHeight;
+
+            // Calculate which section we're in (0-4)
+            const totalSections = 5;
+            const sectionHeight = windowHeight;
+            const currentSection = Math.floor(scrollTop / sectionHeight);
+            const sectionProgress = (scrollTop % sectionHeight) / sectionHeight;
+
+            // Update current image index
+            const newImageIndex = Math.min(currentSection, 4);
+
+            // Update text
+            const textOverlay = document.getElementById('text-overlay');
+            textOverlay.textContent = texts[newImageIndex];
+
+            // Text color based on section progress
+            const intensity = Math.min(sectionProgress * 2, 1) * 0.7;
+            const color = `rgba(255, 255, 255, ${0.05 + sectionProgress})`;
+            textOverlay.style.color = color;
+
+            // Update Z displacement for current section
+            const zDisplacement = sectionProgress * 4;
+            // Update material uniforms
+            materials.forEach((material, index) => {
+                if (index === newImageIndex) {
+                    material.uniforms.uAlpha.value = 1;
+                    material.uniforms.uZDisplacement.value = zDisplacement;
+                } else {
+                    material.uniforms.uAlpha.value = 0;
+                    material.uniforms.uZDisplacement.value = 0;
+                }
+            });
+
+            currentImageIndex = newImageIndex;
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start animation
+        animate();
+
+        loadImagePair("./images/1-lambo.png", "./images/1-lambo-depth.png", 0);
+        loadImagePair("./images/2-vibe.jpeg", "./images/2-vibe-depth.jpeg", 1);
+        loadImagePair("./images/3-rally.png", "./images/3-rally-depth.png", 2);
+        loadImagePair("./images/4-surreal.jpeg", "./images/4-surreal-depth.jpeg", 3);
+        loadImagePair("./images/5-night.jpeg", "./images/5-night-depth.jpeg", 4);
+    </script>
+</body>
+
+</html>
