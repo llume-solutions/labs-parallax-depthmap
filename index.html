@@ -38,6 +38,7 @@
         }
 
         .text-overlay {
+            display: none;
             position: fixed;
             top: 50%;
             left: 50%;
@@ -343,7 +344,7 @@
         // Tweakpane
         const PARAMS = {
             wireframe: false,
-            resolution: 1000,
+            resolution: 2000,
             cameraZ: 1,
             rotate: false,
             replaceDisplacement: false,
@@ -373,7 +374,7 @@
         pane.addBinding(PARAMS, 'cameraZ', { min: 1, max: 10 }).on('change', ({ value }) => {
             camera.position.z = value;
         });
-        pane.addBinding(PARAMS, 'resolution', { min: 10, max: 1000, step: 10 }).on('change', ({ value }) => {
+        pane.addBinding(PARAMS, 'resolution', { min: 10, max: 2000, step: 10 }).on('change', ({ value }) => {
             meshes.forEach(mesh => {
                 mesh.geometry.dispose();
                 mesh.geometry = new THREE.PlaneGeometry(1.6 * quadSize, 0.9 * quadSize, value, value);
@@ -385,7 +386,15 @@
             noiseTexture.minFilter = THREE.LinearFilter;
             noiseTexture.wrapS = THREE.ClampToEdgeWrapping;
             noiseTexture.wrapT = THREE.ClampToEdgeWrapping;
-t        });
+
+            renderNoiseFrame((canvas) => {
+                noiseCanvas.getContext('2d').drawImage(canvas, 0, 0);
+                noiseTexture.needsUpdate = true;
+                document.getElementById('displacement-img').src = noiseCanvas.toDataURL();
+
+                materials[0].uniforms.uDepthMap.value = noiseTexture;
+            });
+        });
 
     </script>
 </body>
