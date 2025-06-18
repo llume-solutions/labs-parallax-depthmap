@@ -2,12 +2,9 @@
 
 # 3D parallax website
 
-<video width="100%" controls>
-  <source src="docs/hero.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+![3D website demo](docs/hero.gif)
 
-A toolset and demo for generating parallax depth maps — enabling immersive 3D-style parallax effects by combining color images with depth estimation and view shifting.
+A demo for showcasing a 3D website generated using displacement offset - enabling immersive 3D-style parallax effects by combining color images with depth estimation and view shifting.
 
 🧩 Features
 *	Create subtle camera-shifted parallax layers.
